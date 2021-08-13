@@ -5,8 +5,8 @@ import pytesseract
 import cv2
 from cv2 import *
 from tkinter import *
-import tkinter
 from tkinter.messagebox import *
+from tkinter import filedialog
 import tksvg
 from fs100 import *
 import Slikanje
@@ -94,7 +94,8 @@ popupMenu.place(x=100,y=50,width=200)
 root3.minsize(400,200)
 root3.geometry('400x200+0+0')
 inputText=""
-imgLocation=""
+defaultImageLocation = "C:/Users/300ju/Desktop/DxPackage/linedraw/images/testImage.jpg"
+imgLocation=defaultImageLocation
 #root3.geometry("+50+0")
 
 lmain = Label(root)
@@ -304,11 +305,11 @@ ButPause.forget()
 
 # Button Take Camera Picture 
 def OnPressed_ButTakePicture(event):
-    global toolType
+    global toolType, status, imgLocation
     print('Take picture')
     print("TOOL: ",toolType)
-    ButTakePicture.config(bg='white', fg='grey')
-    global status
+    imgLocation = defaultImageLocation
+    ButTakePicture.config(bg='white', fg='grey') 
     if status != "waitingToAproveDrawing":
         status = "waitingToAproveDrawing"
         takePicture()
@@ -460,10 +461,41 @@ ButHome.bind('<Leave>', OnLeave_ButHome)
 ButHome.pack()
 ButHome.forget()
 
+# Button Browse
+def OnPressed_ButBrowse(event):
+    global imgLocation, status
+    print('Browse')
+    pos = []
+    pos.append(homePositionAr)
+    moveToPosLinear(pos)
+
+    # open file picker
+    imgLocation =  filedialog.askopenfilename(initialdir = "C:/Users/300ju/Desktop/DxPackage/linedraw/images", title = "Select file",filetypes = (("jpeg files","*.jpg"),("all files","*.*")))
+    print(imgLocation)
+    
+    # draw photo
+    if status != "waitingToAproveDrawing":
+        status = "waitingToAproveDrawing"
+        takePicture()
+    else:
+        status = "waitingToTakePicture"
+
+    ButBrowse.config(bg='white', fg='grey')
+def OnHover_ButBrowse(event):
+    ButBrowse.config(bg='darkgrey', fg='white')
+def OnLeave_ButBrowse(event):
+    ButBrowse.config(bg='white', fg='black')
+ButBrowse = Label(root2, text='Browse', bg='white', relief='groove',font=("Times New Roman", 20))
+ButBrowse.place(x=10, y=30, width=200)
+ButBrowse.bind('<Button-1>', OnPressed_ButBrowse)
+ButBrowse.bind('<Enter>', OnHover_ButBrowse)
+ButBrowse.bind('<Leave>', OnLeave_ButBrowse)
+ButBrowse.pack()
+ButBrowse.forget()
+
 # Drawing 
 def OnPressed_ButDrawing(event):
     global toolType,inputText,textENA,homePositionAr,lines
-    toolType=64500
     print(toolType)
     if(toolType!=0):
         if(currentProgram=="Comic"):
@@ -493,7 +525,7 @@ ButDrawing.forget()
 
 def OnPressed_ButDrawingBorderText(event):
     global toolType,inputText,textENA
-    toolType=64500
+    
     print(toolType)
     if(toolType!=0):
         if(currentProgram=="Comic"):
@@ -537,10 +569,8 @@ def takePicture():
     imwrite("C:/Users/300ju/Desktop/DxPackage/linedraw/images/testImage.jpg",frame) 
     
     #imgLocation = "images/nora"
-    imgLocation = "C:/Users/300ju/Desktop/DxPackage/linedraw/images/testImage"
     #imgType = ".png"
-    imgType = ".jpg"
-    image = PIL.Image.open(imgLocation+imgType)
+    image = PIL.Image.open(imgLocation)
     rotatedIm = image.rotate(90,expand=True)
     #imgNew=imgLocation+"New"+imgType
     #rotatedIm.save(imgNew)
@@ -571,7 +601,7 @@ def prepareDrawing():
 
     w = lines[0]
     h = lines[1]
-    print(w)
+    
     usefulDrawingSizeX = 160.0  #MAX x on paper
     usefulDrawingSizeY = 160.0 #MAX y on paper
     #outputAr = deepcopy(lines[2])
@@ -584,8 +614,8 @@ def prepareDrawing():
     #z=41000 #marker
     #z=62000 #pencil
     #z = 77502
-    toolType=64500
-    toolType=62000
+    
+    toolType=64664
     z=toolType
     print("z: ",z)
     
@@ -617,6 +647,7 @@ def prepareDrawing():
         indexi += 1
     # add Home
     outputAr.append(homePositionAr)
+    print(outputAr)
     return outputAr
 
 def drawBox(type):
@@ -779,6 +810,7 @@ def hideRisanje():
     ButStop.pack_forget()
     ButHome.pack_forget()
     ButPause.pack_forget()
+    ButBrowse.pack_forget()
     ButTakePicture.pack_forget()
     ButFullScreen.pack_forget()
     ButDrawing.pack_forget()
@@ -802,6 +834,7 @@ def showRisanje():
     ButStopProgram.forget()
     ButStartProgram.forget()
     ButHome.pack()
+    ButBrowse.pack()
     ButFullScreen.pack()
     C1.pack()
     C2.pack()
@@ -822,6 +855,7 @@ def showComic():
     ButStopProgram.forget()
     ButStartProgram.forget()
     ButHome.pack()
+    ButBrowse.pack()
     ButFullScreen.pack()
     C1.pack()
     C2.pack()
