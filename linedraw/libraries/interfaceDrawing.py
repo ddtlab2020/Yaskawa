@@ -1,8 +1,8 @@
 from typing import Sized
 import PIL
 from PIL import ImageTk,Image, ImageDraw, ImageOps
-import pytesseract
-import cv2
+#import pytesseract
+#import cv2
 from cv2 import *
 from tkinter import *
 from tkinter.messagebox import *
@@ -20,11 +20,11 @@ from PyQt5.QtCore import *
 
 from qtWindowComic import *
 
-import drawAutomata  
-import comic
+#import drawAutomata  
+#import comic
 
 # Comic 
-import cairo
+#import cairo
 from PyQt5.QtGui import QFont, QFontMetrics
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtWidgets
@@ -37,8 +37,8 @@ import linedraw
 import Slikanje
 import Pisanje
 import PisanjeBCI
-import SlikanjeBCI'''
-import svgutils
+import SlikanjeBCI
+import svgutils'''
 import threading
 
 
@@ -77,8 +77,6 @@ root.minsize(800,600)
 root2 = Tk()
 root2.title("Controls")
 root2.bind('<Escape>', lambda e: root.quit())
-
-
 
 
 root3 = Tk()

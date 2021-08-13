@@ -3,10 +3,6 @@
 
 -Poprava znakov/črk
 
--V risanje UI dodaj izbor slike(png,jpg)
-
--V risanje UI dodaj izbor kamere (0-laptop webcam, 1-USB webcam)
-
 (Main features)
 -Prostoročno slikanje
 
