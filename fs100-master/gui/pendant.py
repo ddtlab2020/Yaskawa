@@ -375,7 +375,8 @@ class Toplevel1:
         self.reset_alarm.configure(text='''RESET ALARM''')
 
         # manual added
-        self.robot = FS100('192.168.0.81')
+        self.robot = FS100('192.168.0.81') #MOTOMINI
+        #self.robot = FS100("192.168.2.4") #BIG ROBOT
         self.stop_sign = threading.Semaphore()
 
         self.position_text.bind("<<update>>", self.update_pos_ui)

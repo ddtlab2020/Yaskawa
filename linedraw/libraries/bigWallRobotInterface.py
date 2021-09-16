@@ -1,4 +1,3 @@
-import tkinter
 from typing import Sized
 import PIL
 from PIL import ImageTk,Image, ImageDraw, ImageOps
@@ -20,6 +19,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import translate
 from qtWindowComic import *
+from bigWallRobotComic import *
 import evaServer
 import cairosvg
 from svglib.svglib import svg2rlg
@@ -32,25 +32,19 @@ from PyQt5 import QtWidgets
 from svgpath2mpl import parse_path
 from xml.dom import minidom
 import threading
-import random
-import matplotlib.path
-import matplotlib.pylab as plt
-import matplotlib as mpl
 
 from qtWindowComic import moveSVGdown, mergeSVGs
 
 # =================================================
-robot = FS100("192.168.0.81") #MOTOMINI
-
+#robot = FS100("192.168.0.81") MOTOMINI
+robot = FS100("192.168.2.4") #BIG ROBOT
 
 app = QtWidgets.QApplication(sys.argv)
-windowQT = qtWindowComic() #QtWidgets.QWidget()
+windowQT = bigWallRobotComic() #QtWidgets.QWidget()
 windowQT.hide()
 # =================================================
 # Setup OpenCV
 width, height = 800, 600
-w0,h0=1920,1080
-w1,h1=1920,1080
 #width, height = 1920, 1080
 camera=0
 cap = cv2.VideoCapture(camera) #1 is usb camera
@@ -75,16 +69,6 @@ root2 = Tk()
 root2.title("Controls")
 root2.bind('<Escape>', lambda e: root.quit())
 
-win1 = tkinter.Toplevel()
-fullScreenCanvas=Canvas(win1,width=1920,height=1080)
-
-#win1.attributes("-alpha", 00)
-win1.geometry(f"{w1}x{h1}+{w0}+0") # <- this is the key, offset to the right by w0
-win1.state("zoomed")
-win1.attributes("-fullscreen", False)
-win1.overrideredirect(1)
-
-uiFont = "Times New Roman"
 
 root3 = Tk()
 root3.title("Izberi program")
@@ -92,8 +76,8 @@ root3.bind('<Escape>', lambda e: root.quit())
 choices = {'Slikanje','Slikanje BCI','Pisanje','Pisanje BCI','Risanje','Comic'}
 tkvar = StringVar(root3)
 popupMenu = OptionMenu(root3, tkvar, *choices)
-popupMenu.config(font=(uiFont, 15))
-napis = Label(root3, text="Izberi program: " ,font=(uiFont, 25))
+popupMenu.config(font=("Times New Roman", 15))
+napis = Label(root3, text="Izberi program: " ,font=("Times New Roman", 25))
 napis.place(x=100,y=10)
 popupMenu.place(x=100,y=50,width=200)
 root3.minsize(400,200)
@@ -121,9 +105,9 @@ programRunning = False
 #pencil=62000
 #black marker=77502
 #silver/gold marker=80689
-#toolType = 65000
-#toolType=66465 #48342 #64000
-toolType=62200
+  
+toolType = 65000
+#toolType=48342 #64000
 svg_image = None
 svg_image_display = None
 machinePaused = False
@@ -146,7 +130,7 @@ def moveToPosLinear(posAr):
             robot.switch_power(FS100.POWER_TYPE_SERVO, FS100.POWER_SWITCH_ON)
             print(len(posAr))
         robot.move(None, FS100.MOVE_TYPE_LINEAR_ABSOLUTE_POS, FS100.MOVE_COORDINATE_SYSTEM_ROBOT,
-            FS100.MOVE_SPEED_CLASS_MILLIMETER, 6000, posAr) 
+            FS100.MOVE_SPEED_CLASS_MILLIMETER, 3000, posAr) 
 
 def moveToPosJoint(posAr):
     global robot
@@ -158,6 +142,28 @@ def moveToPosJoint(posAr):
             print(len(posAr))
         robot.move(None, FS100.MOVE_TYPE_JOINT_ABSOLUTE_POS, FS100.MOVE_COORDINATE_SYSTEM_ROBOT,
             FS100.MOVE_SPEED_CLASS_MILLIMETER, 9000, posAr)
+             
+def moveToPosLinearRobotWall(posAr):
+    global robot
+    status = {}
+    if FS100.ERROR_SUCCESS == robot.get_status(status):
+        #print(status)
+        if not status['servo_on']:
+            robot.switch_power(FS100.POWER_TYPE_SERVO, FS100.POWER_SWITCH_ON)
+            print(len(posAr))
+        robot.move(None, FS100.MOVE_TYPE_LINEAR_ABSOLUTE_POS, FS100.MOVE_COORDINATE_SYSTEM_USER,
+            FS100.MOVE_SPEED_CLASS_MILLIMETER, 1000 , posAr,0,0,1,0,4,50,False) #3000
+
+def moveToPosJointRobotWall(posAr):
+    global robot
+    status = {}
+    if FS100.ERROR_SUCCESS == robot.get_status(status):
+        #print(status)
+        if not status['servo_on']:
+            robot.switch_power(FS100.POWER_TYPE_SERVO, FS100.POWER_SWITCH_ON)
+            print(len(posAr))
+        robot.move(None, FS100.MOVE_TYPE_JOINT_ABSOLUTE_POS, FS100.MOVE_COORDINATE_SYSTEM_USER,
+            FS100.MOVE_SPEED_CLASS_MILLIMETER, 1000, posAr,0,0,1,0,4,50,False)
              
 def isNotMoving():
     global robot
@@ -188,7 +194,7 @@ def OnHover_ButStartProgram(event):
     ButStartProgram.config(bg='darkgrey', fg='white')
 def OnLeave_ButStartProgram(event):
     ButStartProgram.config(bg='white', fg='black')
-ButStartProgram = Label(root2, text='Start program', bg='white', relief='groove',font=("TitilliumWeb-ExtraLight", 20))
+ButStartProgram = Label(root2, text='Start program', bg='white', relief='groove',font=("Times New Roman", 20))
 ButStartProgram.place(x=10, y=50, width=100)
 ButStartProgram.bind('<Button-1>', OnPressed_ButStartProgram)
 ButStartProgram.bind('<Enter>', OnHover_ButStartProgram)
@@ -196,14 +202,7 @@ ButStartProgram.bind('<Leave>', OnLeave_ButStartProgram)
 ButStartProgram.pack()
 ButStartProgram.forget()
 
-entry1=Text(root2,font = "TitilliumWeb-ExtraLight 25 bold",width=20,height=3)
-
-def generateRandomQuestion():
-    # load questions from file
-    f = open("c:/Users/300ju/Desktop/DxPackage/linedraw/libraries/questions.txt", "r")
-    questions = f.read().splitlines()
-    
-    return questions[random.randint(0, len(questions)-1)]
+entry1=Text(root2,font = "CNCVector 25 bold",width=20,height=3)
 
 def OnPressed_ButReadText(event):
     global inputText,textENA
@@ -214,18 +213,14 @@ def OnPressed_ButReadText(event):
     #drawText()
     #drawComic()
 
-    if inputText == "":
-        inputText = generateRandomQuestion()
-
     textENA = windowQT.sendENAText(inputText)
     print("USER: "+inputText)
-    #inputText=translate.translate(inputText)
+    inputText=translate.translate(inputText)
     print("USER TRANSLATED: "+inputText)
     print("EVA: "+textENA)
-    #textENA=translate.translate(textENA)
+    textENA=translate.translate(textENA)
     print("EVA TRANSLATED: "+textENA)
-    textENA=textENA.upper()
-    inputText=inputText.upper()
+
     evaServer.sendMessage()
     
     
@@ -234,7 +229,7 @@ def OnHover_ButReadText(event):
     ButReadText.config(bg='darkgrey', fg='white')
 def OnLeave_ButReadText(event):
     ButReadText.config(bg='white', fg='black')
-ButReadText = Label(root2, text='Read text', bg='white', relief='groove',font=(uiFont, 20))
+ButReadText = Label(root2, text='Read text', bg='white', relief='groove',font=("Times New Roman", 20))
 ButReadText.place(x=10, y=50, width=100)
 ButReadText.bind('<Button-1>', OnPressed_ButReadText)
 ButReadText.bind('<Enter>', OnHover_ButReadText)
@@ -255,7 +250,7 @@ def OnHover_ButStop(event):
     ButStop.config(bg='darkgrey', fg='white')
 def OnLeave_ButStop(event):
     ButStop.config(bg='white', fg='black')
-ButStop = Label(root2, text='Stop drawing', bg='white', relief='groove',font=(uiFont, 20))
+ButStop = Label(root2, text='Stop drawing', bg='white', relief='groove',font=("Times New Roman", 20))
 ButStop.place(x=10, y=50, width=100)
 ButStop.bind('<Button-1>', OnPressed_ButStop)
 ButStop.bind('<Enter>', OnHover_ButStop)
@@ -287,7 +282,7 @@ def OnLeave_ButStopProgram(event):
         ButStopProgram.config(bg='white', fg='grey')
     else:
         ButStopProgram.config(bg='white', fg='black')
-ButStopProgram = Label(root2, text='Stop program', bg='white', relief='groove',font=(uiFont, 20))
+ButStopProgram = Label(root2, text='Stop program', bg='white', relief='groove',font=("Times New Roman", 20))
 ButStopProgram.place(x=10, y=80, width=100)
 ButStopProgram.bind('<Button-1>', OnPressed_ButStopProgram)
 ButStopProgram.bind('<Enter>', OnHover_ButStopProgram)
@@ -313,7 +308,7 @@ def OnLeave_ButPause(event):
         ButPause.config(bg='white', fg='grey')
     else:
         ButPause.config(bg='white', fg='black')
-ButPause = Label(root2, text='Pause drawing', bg='white', relief='groove',font=(uiFont, 20))
+ButPause = Label(root2, text='Pause drawing', bg='white', relief='groove',font=("Times New Roman", 20))
 ButPause.place(x=10, y=80, width=100)
 ButPause.bind('<Button-1>', OnPressed_ButPause)
 ButPause.bind('<Enter>', OnHover_ButPause)
@@ -339,7 +334,7 @@ def OnHover_ButTakePicture(event):
     ButTakePicture.config(bg='darkgrey', fg='white')
 def OnLeave_ButTakePicture(event):
     ButTakePicture.config(bg='white', fg='black')
-ButTakePicture = Label(root2, text='Take photo', bg='white', relief='groove',font=(uiFont, 20))
+ButTakePicture = Label(root2, text='Take photo', bg='white', relief='groove',font=("Times New Roman", 20))
 ButTakePicture.place(x=10, y=110, width=100)
 ButTakePicture.bind('<Button-1>', OnPressed_ButTakePicture)
 ButTakePicture.bind('<Enter>', OnHover_ButTakePicture)
@@ -349,16 +344,17 @@ ButTakePicture.forget()
 
 # Button FullScreen
 def OnPressed_ButFullScreen(event):
-    global machinePaused,w1
-    '''if(len(app.screens())>1):
-        #windowQT.resize(500,500)
+    global machinePaused
+
+    if(len(app.screens())>1):
+        windowQT.resize(500,500)
         windowQT.move(-1980,100)
         windowQT.show()
         s = app.screens()[1]
         # Display info about secondary screen 
         print('Screen Name: {} Size: {}x{} Available geometry {}x{} '.format(s.name(), s.size().width(), s.size().height(), s.availableGeometry().width(), s.availableGeometry().height()))
         #windowQT.windowHandle().setScreen(s)
-        #windowQT.showMaximized()
+        windowQT.showMaximized()
         windowQT.showFullScreen()
 
     
@@ -367,7 +363,7 @@ def OnPressed_ButFullScreen(event):
     #toogleFullScreen = not toogleFullScreen
     #root.attributes("-alpha", 00)
      # maximize the window
-    '''
+    
     
     
 def OnHover_ButFullScreen(event):
@@ -382,7 +378,7 @@ def OnLeave_ButFullScreen(event):
         ButFullScreen.config(bg='white', fg='grey')
     else:
         ButFullScreen.config(bg='white', fg='black')
-ButFullScreen = Label(root2, text='Fullscreen', bg='white', relief='groove',font=(uiFont, 20))
+ButFullScreen = Label(root2, text='Fullscreen', bg='white', relief='groove',font=("Times New Roman", 20))
 ButFullScreen.place(x=10, y=140, width=100)
 ButFullScreen.bind('<Button-1>', OnPressed_ButFullScreen)
 ButFullScreen.bind('<Enter>', OnHover_ButFullScreen)
@@ -408,7 +404,7 @@ def robotSelect():
     #print(toolType)
 cam = IntVar(root2)
 C1 = Radiobutton(root2, text="MotoMINI", variable=cam, value=1,
-                  command=robotSelect,font=(uiFont, 15))
+                  command=robotSelect,font=("Times New Roman", 15))
 C1.pack()
 C1.forget()
 
@@ -423,12 +419,12 @@ def cameraSelect():
     #print(toolType)
 cam = IntVar(root2)
 C1 = Radiobutton(root2, text="USB Camera", variable=cam, value=1,
-                  command=cameraSelect,font=(uiFont, 15))
+                  command=cameraSelect,font=("Times New Roman", 15))
 C1.pack()
 C1.forget()
 
 C2 = Radiobutton(root2, text="Webcam", variable=cam, value=0,
-                  command=cameraSelect,font=(uiFont, 15))
+                  command=cameraSelect,font=("Times New Roman", 15))
 C2.pack()
 C2.forget()
 
@@ -441,33 +437,33 @@ def sel():
 var = IntVar(root2)
 
 R1 = Radiobutton(root2, text="Brush", variable=var, value=62000,
-                  command=sel,font=(uiFont, 15))
+                  command=sel,font=("Times New Roman", 15))
 R1.pack()
 R1.forget()
 #R1.place(x=10, y=170)
 
 #Marker
 R2 = Radiobutton(root2, text="SmallMarker", variable=var, value=25481,
-                  command=sel,font=(uiFont, 15))
+                  command=sel,font=("Times New Roman", 15))
 R2.pack()
 #R2.place(x=10, y=200)
 R2.forget()
 
 R3 = Radiobutton(root2, text="BlackMarker", variable=var, value=77502,
-                  command=sel,font=(uiFont, 15))
+                  command=sel,font=("Times New Roman", 15))
 R3.pack()
 #R3.place(x=10, y=230)
 R3.forget()
 
 #64.664
 R4 = Radiobutton(root2, text="Gold/Silver Marker", variable=var, value=64664,
-                  command=sel,font=(uiFont, 15))
+                  command=sel,font=("Times New Roman", 15))
 R4.pack()
 #R4.place(x=10, y=260)
 R4.forget()
 
 R5 = Radiobutton(root2, text="Thick Marker", variable=var, value=60796,
-                  command=sel,font=(uiFont, 15))
+                  command=sel,font=("Times New Roman", 15))
 R5.pack()
 #R5.place(x=10, y=290)
 R5.forget()
@@ -486,7 +482,7 @@ def OnHover_ButHome(event):
     ButHome.config(bg='darkgrey', fg='white')
 def OnLeave_ButHome(event):
     ButHome.config(bg='white', fg='black')
-ButHome = Label(root2, text='Home', bg='white', relief='groove',font=(uiFont, 20))
+ButHome = Label(root2, text='Home', bg='white', relief='groove',font=("Times New Roman", 20))
 ButHome.place(x=10, y=290, width=100)
 ButHome.bind('<Button-1>', OnPressed_ButHome)
 ButHome.bind('<Enter>', OnHover_ButHome)
@@ -518,7 +514,7 @@ def OnHover_ButBrowse(event):
     ButBrowse.config(bg='darkgrey', fg='white')
 def OnLeave_ButBrowse(event):
     ButBrowse.config(bg='white', fg='black')
-ButBrowse = Label(root2, text='Browse', bg='white', relief='groove',font=(uiFont, 20))
+ButBrowse = Label(root2, text='Browse', bg='white', relief='groove',font=("Times New Roman", 20))
 ButBrowse.place(x=10, y=30, width=200)
 ButBrowse.bind('<Button-1>', OnPressed_ButBrowse)
 ButBrowse.bind('<Enter>', OnHover_ButBrowse)
@@ -532,14 +528,14 @@ def OnPressed_ButDrawing(event):
     print(toolType)
     if(toolType!=0):
         if(currentProgram=="Comic"):
-            comicAr=windowQT.prepareDrawing(215000,0,lines[0],lines[1],toolType,homePositionAr,lines[2])
+            #comicAr=windowQT.prepareDrawing(215000,0,lines[0],lines[1],toolType,homePositionAr,lines[2])
+            comicAr=windowQT.prepareDrawingRobotWall(100000,0,lines[0],lines[1],toolType,homePositionAr,lines[2])
             print(comicAr)
             
-            moveToPosJoint(comicAr)
+            moveToPosJointRobotWall(comicAr)
         else:
             preparedLinesAr = prepareDrawing()
             #moveToPosLinear(preparedLinesAr)
-            #print(preparedLinesAr)
             moveToPosJoint(preparedLinesAr)
         print('Start drawing')
         status = "drawing" 
@@ -551,7 +547,7 @@ def OnHover_ButDrawing(event):
     ButDrawing.config(bg='darkgrey', fg='white')
 def OnLeave_ButDrawing(event):
     ButDrawing.config(bg='white', fg='black')
-ButDrawing = Label(root2, text='Draw', bg='white', relief='groove',font=(uiFont, 20))
+ButDrawing = Label(root2, text='Draw', bg='white', relief='groove',font=("Times New Roman", 20))
 ButDrawing.place(x=10, y=310, width=100)
 ButDrawing.bind('<Button-1>', OnPressed_ButDrawing)
 ButDrawing.bind('<Enter>', OnHover_ButDrawing)
@@ -565,15 +561,18 @@ def OnPressed_ButDrawingBorderText(event):
     print(toolType)
     if(toolType!=0):
         if(currentProgram=="Comic"):
-            boxArHumanH=drawBox("user")
-            boxArRobot=drawBox("robot")
-            
-            textArHuman=drawText("user",inputText)
-            textArRobot=drawText("robot",textENA)
-            coordAr=merge(boxArHumanH,boxArRobot,textArHuman,textArRobot)
+            #boxArHumanH=drawBox("user")
+            #boxArRobot=drawBox("robot")
+            boxArHumanWall=drawBoxRobotWall("user")
+            boxArRobotWall=drawBoxRobotWall("robot")
+            #textArHuman=drawText("user",inputText)
+            #textArRobot=drawText("robot",textENA)
+            textArHumanWall=drawTextWallRobot("user","Hello")
+            textArRobotWall=drawTextWallRobot("robot","I am Eva")
+            coordAr=merge(boxArHumanWall,boxArRobotWall,textArHumanWall,textArRobotWall)
             #print(boxArHumanH)
             print(coordAr)
-            moveToPosLinear(coordAr) #coordAr
+            moveToPosLinearRobotWall(coordAr) #coordAr
         else:
             preparedLinesAr = prepareDrawing()
             moveToPosLinear(preparedLinesAr)
@@ -587,7 +586,7 @@ def OnHover_ButDrawingBorderText(event):
     ButDrawingBorderText.config(bg='darkgrey', fg='white')
 def OnLeave_ButDrawingBorderText(event):
     ButDrawingBorderText.config(bg='white', fg='black')
-ButDrawingBorderText = Label(root2, text='Draw border/text', bg='white', relief='groove',font=(uiFont, 20))
+ButDrawingBorderText = Label(root2, text='Draw border/text', bg='white', relief='groove',font=("Times New Roman", 20))
 ButDrawingBorderText.place(x=10, y=310, width=100)
 ButDrawingBorderText.bind('<Button-1>', OnPressed_ButDrawingBorderText)
 ButDrawingBorderText.bind('<Enter>', OnHover_ButDrawingBorderText)
@@ -599,9 +598,7 @@ ButDrawingBorderText.forget()
 # C:/Users/300ju/Desktop/DxPackage/linedraw/output/out.svg
 def saveSVGToPDF(filepath):
     drawing = svg2rlg(filepath)
-    renderPDF.drawToFile(drawing, "C:/Users/300ju/Desktop/DxPackage/linedraw/output/test.pdf", autoSize=1)
-    #renderPDF.drawToFile(drawing, "C:/Users/300ju/Desktop/DxPackage/linedraw/output/test.pdf")
-
+    renderPDF.drawToFile(drawing, "C:/Users/300ju/Desktop/DxPackage/linedraw/output/test.pdf", autoSize=0)
 
 def printPDF(filepath):
     currentprinter = win32print.GetDefaultPrinter()
@@ -650,14 +647,6 @@ def takePicture():
 
     #Get Render SVG (Normal)
     lines = linedraw.sketchIM(rotatedIm)
-    
-    #print("OLD LINES: "+ str(lines[2:][0]))
-    #newLines = [lines[1], lines[0]]
-    #lines=rotatePathAr(lines[2:][0])
-    #newLines.append(lines)
-    #lines = newLines
-    #print(lines)
-    #print("NEW LINES: "+ str(lines))
     svg_image = tksvg.SvgImage(file="C:/Users/300ju/Desktop/DxPackage/linedraw/output/out.svg")
     #newsize = (width, height)
 
@@ -667,10 +656,9 @@ def takePicture():
 
 def prepareDrawing():
     global lines,toolType
-    
     w = lines[0]
     h = lines[1]
-    print("NEW LINES: "+ str(lines))
+    
     usefulDrawingSizeX = 160.0  #MAX x on paper
     usefulDrawingSizeY = 160.0 #MAX y on paper
     #outputAr = deepcopy(lines[2])
@@ -686,8 +674,6 @@ def prepareDrawing():
     
     
     z=toolType
-    z=62200
-    #z=100000
     print("z: ",z)
     
      #gold/silver
@@ -730,11 +716,22 @@ def drawBox(type):
     else:
         coordAr = windowQT.comicBox(-120000,85000,80000,40000,toolType)
         return(coordAr)
+    #moveToPosLinear(coordAr)
 
+def drawBoxRobotWall(type):
+    global toolType
+    toolType=0
+    if(type=="robot"):
+        #coordAr = windowQT.comicBox(45000,85000,100000,40000,toolType)
+        coordAr = windowQT.comicBoxRobotWall(185000,140000,80000,40000,toolType)
+        return(coordAr)
+    else:
+        coordAr = windowQT.comicBoxRobotWall(185000,0,80000,40000,toolType)
+        return(coordAr)
     #moveToPosLinear(coordAr)
 
 def drawText(type,text):
-    global toolType,inputText,textENA
+    global toolType,inputText
 
     # text into multiple rows
     if len(text) > 20:
@@ -742,17 +739,36 @@ def drawText(type,text):
         text = tempText
 
     if(type=="robot"):
-        xTranslate = 90000
-        yTranslate = 50000
+        xTranslate = 100000
+        yTranslate = 60000
         coordAr = windowQT.textToSVG(xTranslate,yTranslate,text,200000-40000,toolType, type)
         return(coordAr)
     else:
-        xTranslate = 90000
+        xTranslate = 100000
         yTranslate = -120000
         coordAr = windowQT.textToSVG(xTranslate,yTranslate,text,200000-40000,toolType, type)
         return(coordAr)
     #moveToPosJoint(coordAr)
 
+def drawTextWallRobot(type,text):
+    global toolType,inputText
+    # text into multiple rows
+    if len(text) > 20:
+        tempText = text[:20] + "\n" + text[20:]
+        text = tempText
+
+    if(type=="robot"):
+        xTranslate = 170000
+        yTranslate = 155000
+        coordAr = windowQT.textToSVGWallRobot(xTranslate,yTranslate,text,200000-40000,toolType, type)
+        return(coordAr)
+    else:
+        xTranslate = 170000
+        yTranslate = 5000
+        coordAr = windowQT.textToSVGWallRobot(xTranslate,yTranslate,text,200000-40000,toolType, type)
+        return(coordAr)
+    #moveToPosJoint(coordAr)
+    
 def drawComic():
     global toolType,homePositionAr,lines
     print("lines send")
@@ -760,6 +776,18 @@ def drawComic():
     w = lines[0]
     h = lines[1]
     coordAr = windowQT.prepareDrawing(260000,0,w,h,toolType,homePositionAr, lines[2])
+    print("lines received")
+    print(coordAr)
+    return(coordAr)
+    #moveToPosJoint(coordAr)
+
+def drawComicRobotWall():
+    global toolType,homePositionAr,lines
+    print("lines send")
+    print(lines[2])
+    w = lines[0]
+    h = lines[1]
+    coordAr = windowQT.prepareDrawingRobotWall(260000,0,w,h,toolType,homePositionAr, lines[2])
     print("lines received")
     print(coordAr)
     return(coordAr)
@@ -777,75 +805,8 @@ def merge(boxHumanAr,textHumanAr,boxRobotAr,textRobotAr):
         coordAr.append(i)
     return(coordAr)
 
-def draw_rectangle():
-    global textENA, inputText
-    # left rectangle
-    fullScreenCanvas.create_line(100, 100, 600, 100, width=10)
-    fullScreenCanvas.create_line(600, 100, 600, 300, width=10)
-
-    fullScreenCanvas.create_line(400, 300, 600, 300, width=10)
-    fullScreenCanvas.create_line(400, 300, 400, 400, width=10)
-    fullScreenCanvas.create_line(100, 300, 280, 300, width=10)
-    fullScreenCanvas.create_line(400, 400, 280, 300, width=10)
-
-    fullScreenCanvas.create_line(100, 100, 100, 300, width=10)
-
-    # right rectangle
-    fullScreenCanvas.create_line(1320, 100, 1820, 100, width=10)
-    fullScreenCanvas.create_line(1820, 100, 1820, 300, width=10)
-
-    fullScreenCanvas.create_line(1320, 300, 1520, 300, width=10)
-    fullScreenCanvas.create_line(1520, 300, 1520, 400,width=10)
-    fullScreenCanvas.create_line(1820, 300, 1640, 300, width=10)
-    fullScreenCanvas.create_line(1640, 300, 1520, 400, width=10)
-
-    fullScreenCanvas.create_line(1320, 100, 1320, 300, width=10)
-
-    fontName = "Titillium Web ExtraLight"
-
-    if textENA != "":
-        if len(textENA) > 20:
-            #textENATemp = textENA[:20] + "\0" + textENA[20:]
-            textENASplit = textENA.split()
-            builder = textENASplit[0] + " "
-            margin = 0
-            finished = False
-            for t in textENASplit[1:]:
-                if len(builder) + len(t + " ") < 20:
-                    builder += t + " "
-                    finished = False
-                else:
-                    fullScreenCanvas.create_text(1340, 165 + margin, text= builder,fill="black",font=(fontName, 30, "bold"), anchor=tkinter.SW)
-                    margin += 40
-                    builder = t + " "
-                    finished = True
-            #if not finished:        
-            fullScreenCanvas.create_text(1340, 165 + margin, text= builder,fill="black",font=(fontName, 30, "bold"), anchor=tkinter.SW)
-        else:
-            fullScreenCanvas.create_text(1340, 165, text= textENA,fill="black",font=(fontName, 30, "bold"), anchor=tkinter.SW)
-        
-        if len(inputText) > 20:
-            inputTextSplit = inputText.split()
-            builder = inputTextSplit[0] + " "
-            margin = 0
-            finished = False
-            for t in inputTextSplit[1:]:
-                if len(builder) + len(t + " ") < 20:
-                    builder += t + " "
-                    finished = False
-                else:
-                    fullScreenCanvas.create_text(120, 165 + margin, text= builder,fill="black",font=(fontName, 30, "bold"), anchor=tkinter.SW)
-                    margin += 40
-                    builder = t + " "
-                    finished = True
-            #if not finished:
-            fullScreenCanvas.create_text(120, 165 + margin, text= builder,fill="black",font=(fontName, 30, "bold"), anchor=tkinter.SW)
-        else:
-            fullScreenCanvas.create_text(120, 165, text= inputText,fill="black",font=(fontName, 30, "bold"), anchor=tkinter.SW)
-
-
 def show_frame():
-    global status,cap,inputText,textENA
+    global status,cap
     if status == "waitingToTakePicture":
         #print("showing frame...")
         _, frame = cap.read()
@@ -853,28 +814,15 @@ def show_frame():
         #height,width,byts=frame.shape
         #print(height,width)
         cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
-        cv2imageFullScreen=cv2.resize(cv2image, dsize=(1920, 1080), interpolation=cv2.INTER_CUBIC)
-        #windowQT.updateData(cv2image)
-        #windowQT.update()
+        windowQT.updateData(cv2image)
+        windowQT.update()
         
         img = PIL.Image.fromarray(cv2image)
-        new_img = PIL.Image.fromarray(cv2imageFullScreen)
-        
-        fullScreenCanvas.delete('all')
-        
         imgtk = ImageTk.PhotoImage(image=img)
-        imgtkFullscreen = ImageTk.PhotoImage(image=new_img)
+        
         canvas.delete('all')
         canvas.create_image(20,20, anchor=NW, image=imgtk) 
         canvas.image = imgtk
-
-        fullScreenCanvas.delete('all')
-        fullScreenCanvas.create_image(20,20, anchor=NW, image=imgtkFullscreen) 
-        fullScreenCanvas.image = imgtkFullscreen
-  
-        draw_rectangle()
-
-        fullScreenCanvas.pack()
 
         #canvasFull.delete('all')
         #canvasFull.create_image(0,0, anchor=NW, image=imgfs) 
@@ -898,7 +846,7 @@ def show_frame():
             #lmain.configure(image=svg_image)
             if currentProgram=="Comic":
                 #myComic.
-                canvas.create_text(300, 20, text= inputText,fill="black",font=('TitilliumWeb-ExtraLight 15 bold'))
+                canvas.create_text(300, 20, text= inputText,fill="black",font=('Helvetica 15 bold'))
                 
     canvas.after(200, show_frame)
     #canvasFull.after(200, show_frame)
@@ -1029,20 +977,6 @@ def showComic():
     R5.pack()
     ButDrawing.pack()
     ButStop.pack()
-
-def rotatePath(vertices, rotate_deg=90, render=False):
-    path = matplotlib.path.Path(vertices)
-    marker = path.transformed(mpl.transforms.Affine2D().rotate_deg(rotate_deg))
-    if render:
-        plt.scatter([0,0],[0,0], marker=marker, s=5000)
-    return marker.vertices
-
-def rotatePathAr(verticesAr, rotate_deg=90, render=False):
-    output = []
-    for vertices in verticesAr:
-        verticesRotated = rotatePath(vertices,rotate_deg,True)
-        output.append(verticesRotated)
-    return output
 
 tkvar.trace('w', change_dropdown)
 '''   

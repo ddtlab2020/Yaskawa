@@ -31,6 +31,7 @@ def start():
             command,address = s.recvfrom(100000)
             print(str(address))
             command = str(command)
+            print(command)
             
             kje = command.index("x06Key_")
             vsebina = command[kje+7:kje+9]

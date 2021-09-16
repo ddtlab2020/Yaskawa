@@ -11,6 +11,7 @@ import perlin
 from util import *
 
 no_cv = False
+export_path_2 = "C:/Users/300ju/Desktop/DxPackage/linedraw/output/outOriginal.svg"
 export_path = "C:/Users/300ju/Desktop/DxPackage/linedraw/output/out.svg"
 export_path_normal = "C:/Users/300ju/Desktop/DxPackage/linedraw/output/out.svg"
 draw_contours = True
@@ -169,7 +170,34 @@ def hatch(IM,sc=16):
             lines[i][j] = int(lines[i][j][0]+sc*perlin.noise(i*0.5,j*0.1,1)),int(lines[i][j][1]+sc*perlin.noise(i*0.5,j*0.1,2))-j
     return lines
 
+def sketchOriginal(IM):
+    w,h = IM.size
 
+    IM = IM.convert("L")
+    IM=ImageOps.autocontrast(IM,10)
+
+    lines = []
+    if draw_contours:
+        lines += getcontours(IM.resize((resolution//contour_simplify,resolution//contour_simplify*h//w)),contour_simplify)
+    if draw_hatch:
+        lines += hatch(IM.resize((resolution//hatch_size,resolution//hatch_size*h//w)),hatch_size)
+
+    lines = sortlines(lines)
+    if show_bitmap:
+        disp = Image.new("RGB",(resolution,resolution*h//w),(255,255,255))
+        draw = ImageDraw.Draw(disp)
+        for l in lines:
+            draw.line(l,(0,0,0),5)
+        disp.show()
+
+    # original not rotated
+    f = open(export_path_2,'w')
+    f.write(makesvg(lines))
+    f.close()
+
+    print(len(lines),"strokes.")
+    print("done.")
+    return [w,h,lines]
 
 def sketchIM(IM):
     w,h = IM.size
@@ -194,6 +222,12 @@ def sketchIM(IM):
     f = open(export_path,'w')
     f.write(makesvg(lines))
     f.close()
+
+    # original not rotated
+    f = open(export_path_2,'w')
+    f.write(makesvg(lines))
+    f.close()
+
     print(len(lines),"strokes.")
     print("done.")
     return [w,h,lines]
